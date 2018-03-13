@@ -1,0 +1,167 @@
+% \iffalse meta-comment
+%
+%% Copyright (C) 2018 by Marcel Krueger
+%%
+%% This file may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either
+%% version 1.3c of this license or (at your option) any later
+%% version. The latest version of this license is in:
+%%
+%% http://www.latex-project.org/lppl.txt
+%%
+%% and version 1.3 or later is part of all distributions of
+%% LaTeX version 2005/12/01 or later.
+%
+%<*batch>
+%<*gobble>
+\ifx\jobname\relax\let\documentclass\undefined\fi
+\ifx\documentclass\undefined
+\csname fi\endcsname
+%</gobble>
+\input l3docstrip.tex
+\keepsilent
+\preamble
+\endpreamble
+\generate{\file{intopdf.sty}{\from{intopdf.dtx}{package}}}
+\endbatchfile
+%</batch>
+%<*gobble>
+\fi
+\expandafter\ifx\csname @currname\endcsname\empty
+\csname fi\endcsname
+%</gobble>
+%<*driver>
+\documentclass[full]{l3doc}
+\usepackage{intopdf,metalogo}
+\begin{document}
+\DocInput{intopdf.dtx}
+\PrintIndex
+\PrintChanges
+\end{document}
+%</driver>
+%<*gobble>
+\fi
+%</gobble>
+% \fi
+%
+% \GetFileInfo{intopdf.dtx}
+% \title{The \pkg{intopdf} package\thanks{This document
+%        corresponds to \pkg{intopdf}~0.0.1, dated~2018/03/13.}}
+% \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
+%
+% \maketitle
+%
+% \begin{documentation}
+% This package defines a command \cmd\attachandlink{} which allows to attach an arbitrary file to your PDF document and linking to it from the main text.
+% It is inspired by the \TeX Stack Exchange question \href{https://tex.stackexchange.com/questions/418606/embed-non-pdf-files-e-g-bibtex-into-pdf-with-hyperlink-in-the-pdf/418827#418827}{Embed non-PDF files (e.g., BibTex) into PDF with hyperlink in the PDF}. Currently only pdf\LaTeX\ is supported, \LuaLaTeX\ support will follow. 
+%
+% \section{Usage}
+% \begin{function}{\attachandlink}
+%   \begin{syntax}
+%     |\attachandlink| \Arg{filename}[\meta{mime-type}]\Arg{Description}\Arg{link text}
+%   \end{syntax}
+%   The text \meta{link text} is inserted, linking to the file \meta{filename} which is attached to the document.
+%
+%   \meta{Description} should be a description of the file and will be shown by the PDF viewer in the atttached files section and sometimes in a mouseover tooltip.\\
+%   \meta{mime-type} should be the MIME-Type of \meta{filename}. Currently \meta{mime-type} is mandatory but I hope to make it optional in a later release.
+% \end{function}
+% \section{Example}
+% The source of the document is attached
+% \attachandlink{intopdf.dtx}[application/x-tex]
+%     {The source of this document}{here}.
+% \begin{verbatim}
+%   The source of the document is attached
+%   \attachandlink{intopdf.dtx}[application/x-tex]
+%       {The source of this document}{here}.
+% \end{verbatim}
+% \end{documentation}
+% \begin{implementation}
+% \section{The implementation}
+%    \begin{macrocode}
+%<@@=intopdf>
+%    \end{macrocode}
+% \iffalse
+%<*package>
+\NeedsTeXFormat{LaTeX2e}
+\RequirePackage{expl3}
+\ProvidesExplPackage
+  {intopdf}
+  {2018/03/13}
+  {0.0.1}
+  {Embed non-PDF files into PDF with hyperlink}
+
+\RequirePackage{hyperref}
+%</package>
+% \fi
+% First some wrappers for the \pdfTeX primitives are defined.
+%    \begin{macrocode}
+\cs_new_eq:NN\__intopdf_escape_name:n\pdfescapename
+\cs_new_eq:NN\__intopdf_escape_string:n\pdfescapestring
+\cs_new:Nn\__intopdf_pdfobj:n{
+  \tex_immediate:D\pdftex_pdfobj:D{<<#1>>}
+}
+\cs_new:Nn\__intopdf_pdfstream_file:nn{
+  \tex_immediate:D\pdftex_pdfobj:D stream attr {#1} file {#2}
+}
+\cs_new:Nn\__intopdf_lastobj_ref:{
+  \c_space_tl
+  \int_use:N\pdftex_pdflastobj:D
+  \c_space_tl
+  0
+  \c_space_tl
+  R
+}
+\cs_new:Npn\__intopdf_annot:nnw#1#2{
+  \leavevmode
+  \pdftex_pdfstartlink:D attr{#1} user {#2}
+}
+\cs_new:Nn\__intopdf_annot_end:{
+  \pdftex_pdfendlink:D
+}
+\cs_new:Nn\__intopdf_annot:nnn{
+  \__intopdf_annot:nnw{#1}{#2}
+  #3
+  \__intopdf_annot_end:
+}
+%    \end{macrocode}
+% \begin{macro}{\intopdf_attach_link:nnnn,\attachandlink}
+% The main functionality.
+%    \begin{macrocode}
+\cs_new_protected:Nn\intopdf_attach_link:nnnn{
+  \__intopdf_pdfstream_file:nn{
+    /Subtype /\__intopdf_escape_name:n{#2}
+  }{#1}
+  \__intopdf_pdfobj:n{
+    /Type /Filespec
+    /F (\__intopdf_escape_string:n{#1})
+    /EF << /F \__intopdf_lastobj_ref: >>
+    /Desc (\__intopdf_escape_string:n{#3})
+  }%
+  \__intopdf_annot:nnn{
+    \Hy@setpdfborder
+    \tl_if_empty:NF\@pdfhighlight{
+      /H\@pdfhighlight
+    }
+    \cs_if_free:NF\@urlbordercolor{
+      /C[\@urlbordercolor]
+    }
+  }{
+    /Subtype /Link
+  }{
+    \__intopdf_annot:nnn{}{
+      /Subtype /FileAttachment
+      /FS \__intopdf_lastobj_ref:
+      /F\c_space_tl 416
+      /CA\c_space_tl 0
+      /Contents (\__intopdf_escape_string:n{#3})
+    }{
+      #4
+    }
+  }
+}
+\cs_new_protected:Npn\attachandlink#1[#2]#3#4{
+  \intopdf_attach_link:nnnn{#1}{#2}{#3}{#4}
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{implementation}
