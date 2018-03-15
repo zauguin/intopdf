@@ -46,14 +46,14 @@
 %
 % \GetFileInfo{intopdf.dtx}
 % \title{The \pkg{intopdf} package\thanks{This document
-%        corresponds to \pkg{intopdf}~0.0.1, dated~2018/03/13.}}
+%        corresponds to \pkg{intopdf}~0.1.0, dated~2018/03/15.}}
 % \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
 %
 % \maketitle
 %
 % \begin{documentation}
 % This package defines a command \cmd\attachandlink{} which allows to attach an arbitrary file to your PDF document and linking to it from the main text.
-% It is inspired by the \TeX Stack Exchange question \href{https://tex.stackexchange.com/questions/418606/embed-non-pdf-files-e-g-bibtex-into-pdf-with-hyperlink-in-the-pdf/418827#418827}{Embed non-PDF files (e.g., BibTex) into PDF with hyperlink in the PDF}. Currently only pdf\LaTeX\ is supported, \LuaLaTeX\ support will follow. 
+% It is inspired by the \TeX Stack Exchange question \href{https://tex.stackexchange.com/questions/418606/embed-non-pdf-files-e-g-bibtex-into-pdf-with-hyperlink-in-the-pdf/418827#418827}{Embed non-PDF files (e.g., BibTex) into PDF with hyperlink in the PDF}. The engines pdf\LaTeX\ and \LuaLaTeX\ are supported. 
 %
 % \section{Usage}
 % \begin{function}{\attachandlink}
@@ -77,6 +77,7 @@
 % \end{documentation}
 % \begin{implementation}
 % \section{The implementation}
+% \changes{v0.0.1}{2018/03/13}{Initial version}
 %    \begin{macrocode}
 %<@@=intopdf>
 %    \end{macrocode}
@@ -86,37 +87,79 @@
 \RequirePackage{expl3}
 \ProvidesExplPackage
   {intopdf}
-  {2018/03/13}
-  {0.0.1}
+  {2018/03/15}
+  {0.1.0}
   {Embed non-PDF files into PDF with hyperlink}
 
 \RequirePackage{hyperref}
 %</package>
 % \fi
-% First some wrappers for the \pdfTeX primitives are defined.
+% \changes{v0.1.0}{2018/03/15}{Added \LuaLaTeX\ support}
+% Only \pdfTeX{} and \LuaLaTeX{} are supported.
+% For other engines we show an error.
 %    \begin{macrocode}
-\cs_new_eq:NN\__intopdf_escape_name:n\pdfescapename
-\cs_new_eq:NN\__intopdf_escape_string:n\pdfescapestring
-\cs_new:Nn\__intopdf_pdfobj:n{
-  \tex_immediate:D\pdftex_pdfobj:D{<<#1>>}
-}
-\cs_new:Nn\__intopdf_pdfstream_file:nn{
-  \tex_immediate:D\pdftex_pdfobj:D stream attr {#1} file {#2}
-}
-\cs_new:Nn\__intopdf_lastobj_ref:{
-  \c_space_tl
-  \int_use:N\pdftex_pdflastobj:D
-  \c_space_tl
-  0
-  \c_space_tl
-  R
-}
-\cs_new:Npn\__intopdf_annot:nnw#1#2{
-  \leavevmode
-  \pdftex_pdfstartlink:D attr{#1} user {#2}
-}
-\cs_new:Nn\__intopdf_annot_end:{
-  \pdftex_pdfendlink:D
+\msg_new:nnnn{intopdf}{engine-unsupported}
+  {Your~TeX~engine~is~not~supported~by~intopdf.}
+  {To~use~intopdf,~you~have~to~use~pdfLaTeX~or~LuaLaTeX.}
+%    \end{macrocode}
+% Then we define some wrappers for the primitives.
+%    \begin{macrocode}
+\cs_generate_variant:Nn\str_case:nnF{VnF}
+\str_case:VnF\c_sys_engine_str{
+  {pdftex}{
+    \cs_new:Nn\__intopdf_escape_name:n{\pdfescapename{#1}}
+    \cs_new:Nn\__intopdf_escape_string:n{(\pdfescapestring{#1})}
+    \cs_new:Nn\__intopdf_pdfobj:n{
+      \tex_immediate:D\pdftex_pdfobj:D{<<#1>>}
+    }
+    \cs_new:Nn\__intopdf_pdfstream_file:nn{
+      \tex_immediate:D\pdftex_pdfobj:D stream attr {#1} file {#2}
+    }
+    \cs_new:Nn\__intopdf_lastobj_ref:{
+      \c_space_tl
+      \int_use:N\pdftex_pdflastobj:D
+      \c_space_tl
+      0
+      \c_space_tl
+      R
+    }
+    \cs_new:Npn\__intopdf_annot:nnw#1#2{
+      \leavevmode
+      \pdftex_pdfstartlink:D attr{#1} user {#2}
+    }
+    \cs_new:Nn\__intopdf_annot_end:{
+      \pdftex_pdfendlink:D
+    }
+  }
+  {luatex}{
+    \RequirePackage{pdftexcmds}
+    \cs_new:Nn\__intopdf_escape_name:n{\pdf@escapename{#1}}
+    \cs_new:Nn\__intopdf_escape_string:n{(\pdf@escapestring{#1})}
+    \cs_new:Nn\__intopdf_pdfobj:n{
+      \tex_immediate:D\luatex_pdfextension:D obj{<<#1>>}
+    }
+    \cs_new:Nn\__intopdf_pdfstream_file:nn{
+      \tex_immediate:D\luatex_pdfextension:D obj stream attr {#1} file {#2}
+    }
+    \cs_new:Nn\__intopdf_lastobj_ref:{
+      \c_space_tl
+      \luatex_pdffeedback:D lastobj
+      \c_space_tl
+      0
+      \c_space_tl
+      R
+    }
+    \cs_new:Npn\__intopdf_annot:nnw#1#2{
+      \leavevmode
+      \luatex_pdfextension:D startlink attr{#1} user {#2}
+    }
+    \cs_new:Nn\__intopdf_annot_end:{
+      \luatex_pdfextension:D endlink
+      \scan_stop:
+    }
+  }
+}{
+  \msg_critical:nn{intopdf}{engine-unsupported}
 }
 \cs_new:Nn\__intopdf_annot:nnn{
   \__intopdf_annot:nnw{#1}{#2}
@@ -133,9 +176,9 @@
   }{#1}
   \__intopdf_pdfobj:n{
     /Type /Filespec
-    /F (\__intopdf_escape_string:n{#1})
+    /F \__intopdf_escape_string:n{#1}
     /EF << /F \__intopdf_lastobj_ref: >>
-    /Desc (\__intopdf_escape_string:n{#3})
+    /Desc \__intopdf_escape_string:n{#3}
   }%
   \__intopdf_annot:nnn{
     \Hy@setpdfborder
@@ -153,7 +196,7 @@
       /FS \__intopdf_lastobj_ref:
       /F\c_space_tl 416
       /CA\c_space_tl 0
-      /Contents (\__intopdf_escape_string:n{#3})
+      /Contents \__intopdf_escape_string:n{#3}
     }{
       #4
     }
