@@ -58,12 +58,14 @@
 % \section{Usage}
 % \begin{function}{\attachandlink}
 %   \begin{syntax}
-%     |\attachandlink| \Arg{filename}[\meta{mime-type}]\Arg{Description}\Arg{link text}
+%     |\attachandlink| [\meta{filespec}]\Arg{filename}[\meta{mime-type}]\Arg{Description}\Arg{link text}
 %   \end{syntax}
 %   The text \meta{link text} is inserted, linking to the file \meta{filename} which is attached to the document.
 %
 %   \meta{Description} should be a description of the file and will be shown by the PDF viewer in the atttached files section and sometimes in a mouseover tooltip.\\
 %   \meta{mime-type} should be the MIME-Type of \meta{filename}. Currently \meta{mime-type} is mandatory but I hope to make it optional in a later release.
+%   Additionally \meta{filespec} can be used to specify the filename which will be shown in the PDF viewer.
+%   If this is not given, it will default to \meta{filename}.
 % \end{function}
 % \section{Example}
 % The source of the document is attached
@@ -170,15 +172,15 @@
 % \begin{macro}{\intopdf_attach_link:nnnn,\attachandlink}
 % The main functionality.
 %    \begin{macrocode}
-\cs_new_protected:Nn\intopdf_attach_link:nnnn{
+\cs_new_protected:Nn\intopdf_attach_link:nnnnn{
   \__intopdf_pdfstream_file:nn{
-    /Subtype /\__intopdf_escape_name:n{#2}
-  }{#1}
+    /Subtype /\__intopdf_escape_name:n{#3}
+  }{#2}
   \__intopdf_pdfobj:n{
     /Type /Filespec
     /F \__intopdf_escape_string:n{#1}
     /EF << /F \__intopdf_lastobj_ref: >>
-    /Desc \__intopdf_escape_string:n{#3}
+    /Desc \__intopdf_escape_string:n{#4}
   }%
   \__intopdf_annot:nnn{
     \Hy@setpdfborder
@@ -196,14 +198,17 @@
       /FS \__intopdf_lastobj_ref:
       /F\c_space_tl 416
       /CA\c_space_tl 0
-      /Contents \__intopdf_escape_string:n{#3}
+      /Contents \__intopdf_escape_string:n{#4}
     }{
-      #4
+      #5
     }
   }
 }
-\cs_new_protected:Npn\attachandlink#1[#2]#3#4{
-  \intopdf_attach_link:nnnn{#1}{#2}{#3}{#4}
+\cs_new_protected:Npn \intopdf_attach_link:nnnn #1{
+  \intopdf_attach_link:nnnnn{#1}{#1}
+}
+\NewDocumentCommand\attachandlink{O{#2}mr[]mm}{
+  \intopdf_attach_link:nnnnn{#1}{#2}{#3}{#4}{#5}
 }
 %    \end{macrocode}
 % \end{macro}
