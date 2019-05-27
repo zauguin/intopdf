@@ -46,7 +46,7 @@
 %
 % \GetFileInfo{intopdf.dtx}
 % \title{The \pkg{intopdf} package\thanks{This document
-%        corresponds to \pkg{intopdf}~0.2.0, dated~2019/05/21.}}
+%        corresponds to \pkg{intopdf}~0.2.1, dated~2019/05/28.}}
 % \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
 %
 % \maketitle
@@ -86,11 +86,11 @@
 % \iffalse
 %<*package>
 \NeedsTeXFormat{LaTeX2e}
-\RequirePackage{expl3}
+\RequirePackage{expl3,xparse}
 \ProvidesExplPackage
   {intopdf}
-  {2019/05/21}
-  {0.2.0}
+  {2019/05/28}
+  {0.2.1}
   {Embed non-PDF files into PDF with hyperlink}
 
 \RequirePackage{hyperref}
@@ -169,7 +169,7 @@
   \__intopdf_annot_end:
 }
 %    \end{macrocode}
-% \begin{macro}{\intopdf_attach_link:nnnnn,\intopdf_attach_link:nnnn,\attachandlink}
+% \begin{macro}{\attachandlink,\intopdf_attach_link:nnnnn,\intopdf_attach_link:nnnn}
 % \changes{v0.2.0}{2019/05/21}{Added filespec support. (The first optional argument) Added \cs{intopdf_attach_link:nnnnn}.}
 % The main functionality.
 %    \begin{macrocode}
