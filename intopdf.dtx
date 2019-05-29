@@ -94,6 +94,10 @@
   {Embed non-PDF files into PDF with hyperlink}
 
 \RequirePackage{hyperref}
+\int_new:N \g__intopdf_obj_int
+\cs_generate_variant:Nn \driver_pdf_object_new:nn {xn}
+\cs_generate_variant:Nn \driver_pdf_object_write:nn {xn}
+\cs_generate_variant:Nn \driver_pdf_object_ref:n {e}
 %</package>
 % \fi
 % \changes{v0.1.0}{2018/03/15}{Added \LuaLaTeX\ support}
@@ -111,62 +115,28 @@
   {pdftex}{
     \cs_new:Nn\__intopdf_escape_name:n{\pdfescapename{#1}}
     \cs_new:Nn\__intopdf_escape_string:n{(\pdfescapestring{#1})}
-    \cs_new:Nn\__intopdf_pdfobj:n{
-      \tex_immediate:D\pdftex_pdfobj:D{<<#1>>}
-    }
-    \cs_new:Nn\__intopdf_pdfstream_file:nn{
-      \tex_immediate:D\pdftex_pdfobj:D stream attr {#1} file {#2}
-    }
-    \cs_new:Nn\__intopdf_lastobj_ref:{
-      \c_space_tl
-      \int_use:N\pdftex_pdflastobj:D
-      \c_space_tl
-      0
-      \c_space_tl
-      R
-    }
-    \cs_new:Npn\__intopdf_annot:nnw#1#2{
-      \leavevmode
-      \pdftex_pdfstartlink:D attr{#1} user {#2}
-    }
-    \cs_new:Nn\__intopdf_annot_end:{
-      \pdftex_pdfendlink:D
-    }
   }
   {luatex}{
     \RequirePackage{pdftexcmds}
     \cs_new:Nn\__intopdf_escape_name:n{\pdf@escapename{#1}}
     \cs_new:Nn\__intopdf_escape_string:n{(\pdf@escapestring{#1})}
-    \cs_new:Nn\__intopdf_pdfobj:n{
-      \tex_immediate:D\luatex_pdfextension:D obj{<<#1>>}
-    }
-    \cs_new:Nn\__intopdf_pdfstream_file:nn{
-      \tex_immediate:D\luatex_pdfextension:D obj stream attr {#1} file {#2}
-    }
-    \cs_new:Nn\__intopdf_lastobj_ref:{
-      \c_space_tl
-      \luatex_pdffeedback:D lastobj
-      \c_space_tl
-      0
-      \c_space_tl
-      R
-    }
-    \cs_new:Npn\__intopdf_annot:nnw#1#2{
-      \leavevmode
-      \luatex_pdfextension:D startlink attr{#1} user {#2}
-    }
-    \cs_new:Nn\__intopdf_annot_end:{
-      \luatex_pdfextension:D endlink
-      \scan_stop:
-    }
   }
 }{
   \msg_critical:nn{intopdf}{engine-unsupported}
 }
+\cs_new:Nn\__intopdf_anon_obj:nn {
+  \int_gincr:N \g__intopdf_obj_int
+  \driver_pdf_object_new:xn {__intopdf_ \int_use:N \g__intopdf_obj_int} {#1}
+  \driver_pdf_object_write:xn {__intopdf_ \int_use:N \g__intopdf_obj_int} {#2}
+}
+\cs_generate_variant:Nn \__intopdf_anon_obj:nn {nx}
+\cs_new:Nn\__intopdf_lastobj_ref: {
+  \driver_pdf_object_ref:e {__intopdf_ \int_use:N \g__intopdf_obj_int}
+}
 \cs_new:Nn\__intopdf_annot:nnn{
-  \__intopdf_annot:nnw{#1}{#2}
+  \driver_pdf_link_begin_user:nnw {#1} {#2}
   #3
-  \__intopdf_annot_end:
+  \driver_pdf_link_end:
 }
 %    \end{macrocode}
 % \begin{macro}{\attachandlink,\intopdf_attach_link:nnnnn,\intopdf_attach_link:nnnn}
@@ -174,15 +144,15 @@
 % The main functionality.
 %    \begin{macrocode}
 \cs_new_protected:Nn\intopdf_attach_link:nnnnn{
-  \__intopdf_pdfstream_file:nn{
-    /Subtype /\__intopdf_escape_name:n{#3}
-  }{#2}
-  \__intopdf_pdfobj:n{
+  \__intopdf_anon_obj:nx {fstream} { {
+    /Subtype /\__intopdf_escape_name:n { #3 }
+  } { #2 } }
+  \__intopdf_anon_obj:nx {dict} {
     /Type /Filespec
-    /F \__intopdf_escape_string:n{#1}
-    /EF << /F \__intopdf_lastobj_ref: >>
-    /Desc \__intopdf_escape_string:n{#4}
-  }%
+    /F \__intopdf_escape_string:n { #1 }
+    /EF << /F~\__intopdf_lastobj_ref: >>
+    /Desc \__intopdf_escape_string:n { #4 }
+  }
   \__intopdf_annot:nnn{
     \Hy@setpdfborder
     \tl_if_empty:NF\@pdfhighlight{
@@ -196,9 +166,9 @@
   }{
     \__intopdf_annot:nnn{}{
       /Subtype /FileAttachment
-      /FS \__intopdf_lastobj_ref:
-      /F\c_space_tl 416
-      /CA\c_space_tl 0
+      /FS~\__intopdf_lastobj_ref:
+      /F~416
+      /CA~0
       /Contents \__intopdf_escape_string:n{#4}
     }{
       #5
