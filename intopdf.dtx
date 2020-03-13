@@ -1,6 +1,6 @@
 % \iffalse meta-comment
 %
-%% Copyright (C) 2018 by Marcel Krueger
+%% Copyright (C) 2020 by Marcel Krueger
 %%
 %% This file may be distributed and/or modified under the
 %% conditions of the LaTeX Project Public License, either
@@ -46,7 +46,7 @@
 %
 % \GetFileInfo{intopdf.dtx}
 % \title{The \pkg{intopdf} package\thanks{This document
-%        corresponds to \pkg{intopdf}~0.2.1, dated~2019/05/28.}}
+%        corresponds to \pkg{intopdf}~0.3.0, dated~2020/03/13.}}
 % \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
 %
 % \maketitle
@@ -89,11 +89,11 @@
 \RequirePackage{expl3,xparse}
 \ProvidesExplPackage
   {intopdf}
-  {2019/05/28}
-  {0.2.1}
+  {2020/03/13}
+  {0.3.0}
   {Embed non-PDF files into PDF with hyperlink}
 
-\RequirePackage{hyperref}
+\RequirePackage{l3pdf,hyperref}
 %</package>
 % \fi
 % \changes{v0.1.0}{2018/03/15}{Added \LuaLaTeX\ support}
@@ -123,19 +123,20 @@
 %    \end{macrocode}
 % \begin{macro}{\attachandlink,\intopdf_attach_link:nnnnn,\intopdf_attach_link:nnnn}
 % \changes{v0.2.0}{2019/05/21}{Added filespec support. (The first optional argument) Added \cs{intopdf_attach_link:nnnnn}.}
+% \changes{v0.3.0}{2020/03/13}{Switched to \texttt{l3pdf} instead of using primitives directly. Currently some internal functions from \texttt{l3backend} are needed too for handling links.}
 % The main functionality.
 %    \begin{macrocode}
 \cs_new_protected:Nn\intopdf_attach_link:nnnnn{
-  \driver_pdf_object_now:nx {fstream} { {
+  \pdf_object_now:nx {fstream} { {
     /Subtype /\__intopdf_escape_name:n { #3 }
   } { #2 } }
-  \driver_pdf_object_now:nx {dict} {
+  \pdf_object_now:nx {dict} {
     /Type /Filespec
     /F \__intopdf_escape_string:n { #1 }
-    /EF << /F~\driver_pdf_object_last: >>
+    /EF << /F~\pdf_object_last: >>
     /Desc \__intopdf_escape_string:n { #4 }
   }
-  \driver_pdf_link_begin_user:nnw {
+  \__pdf_backend_link_begin_user:nnw {
     \Hy@setpdfborder
     \tl_if_empty:NF\@pdfhighlight{
       /H\@pdfhighlight
@@ -146,16 +147,16 @@
   }{
     /Subtype /Link
   }
-    \driver_pdf_link_begin_user:nnw { } {
+    \__pdf_backend_link_begin_user:nnw { } {
       /Subtype /FileAttachment
-      /FS~\driver_pdf_object_last:
+      /FS~\pdf_object_last:
       /F~416
       /CA~0
       /Contents \__intopdf_escape_string:n{#4}
     }
       #5
-    \driver_pdf_link_end:
-  \driver_pdf_link_end:
+    \__pdf_backend_link_end:
+  \__pdf_backend_link_end:
 }
 \cs_new_protected:Npn \intopdf_attach_link:nnnn #1{
   \intopdf_attach_link:nnnnn{#1}{#1}
