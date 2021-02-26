@@ -46,14 +46,14 @@
 %
 % \GetFileInfo{intopdf.dtx}
 % \title{The \pkg{intopdf} package\thanks{This document
-%        corresponds to \pkg{intopdf}~0.3.0, dated~2020/03/13.}}
+%        corresponds to \pkg{intopdf}~0.4.0, dated~2021/02/26.}}
 % \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
 %
 % \maketitle
 %
 % \begin{documentation}
 % This package defines a command \cmd\attachandlink{} which allows to attach an arbitrary file to your PDF document and linking to it from the main text.
-% It is inspired by the \TeX Stack Exchange question \href{https://tex.stackexchange.com/questions/418606/embed-non-pdf-files-e-g-bibtex-into-pdf-with-hyperlink-in-the-pdf/418827#418827}{Embed non-PDF files (e.g., BibTex) into PDF with hyperlink in the PDF}. The engines pdf\LaTeX\ and \LuaLaTeX\ are supported. 
+% It is inspired by the \TeX Stack Exchange question \href{https://tex.stackexchange.com/questions/418606/embed-non-pdf-files-e-g-bibtex-into-pdf-with-hyperlink-in-the-pdf/418827#418827}{Embed non-PDF files (e.g., BibTex) into PDF with hyperlink in the PDF}.
 %
 % \section{Usage}
 % \begin{function}{\attachandlink}
@@ -89,52 +89,36 @@
 \RequirePackage{expl3,xparse}
 \ProvidesExplPackage
   {intopdf}
-  {2020/03/13}
-  {0.3.0}
+  {2021/02/26}
+  {0.4.0}
   {Embed non-PDF files into PDF with hyperlink}
 
-\RequirePackage{l3pdf,hyperref}
+\RequirePackage{hyperref}
 %</package>
 % \fi
-% \changes{v0.1.0}{2018/03/15}{Added \LuaLaTeX\ support}
-% Only \pdfTeX{} and \LuaLaTeX{} are supported.
-% For other engines we show an error.
-%    \begin{macrocode}
-\msg_new:nnnn{intopdf}{engine-unsupported}
-  {Your~TeX~engine~is~not~supported~by~intopdf.}
-  {To~use~intopdf,~you~have~to~use~pdfLaTeX~or~LuaLaTeX.}
-%    \end{macrocode}
-% Then we define some wrappers for the primitives.
-%    \begin{macrocode}
-\cs_generate_variant:Nn\str_case:nnF{VnF}
-\str_case:VnF\c_sys_engine_str{
-  {pdftex}{
-    \cs_new:Nn\__intopdf_escape_name:n{\pdfescapename{#1}}
-    \cs_new:Nn\__intopdf_escape_string:n{(\pdfescapestring{#1})}
-  }
-  {luatex}{
-    \RequirePackage{pdftexcmds}
-    \cs_new:Nn\__intopdf_escape_name:n{\pdf@escapename{#1}}
-    \cs_new:Nn\__intopdf_escape_string:n{(\pdf@escapestring{#1})}
-  }
-}{
-  \msg_critical:nn{intopdf}{engine-unsupported}
-}
-%    \end{macrocode}
 % \begin{macro}{\attachandlink,\intopdf_attach_link:nnnnn,\intopdf_attach_link:nnnn}
 % \changes{v0.2.0}{2019/05/21}{Added filespec support. (The first optional argument) Added \cs{intopdf_attach_link:nnnnn}.}
 % \changes{v0.3.0}{2020/03/13}{Switched to \texttt{l3pdf} instead of using primitives directly. Currently some internal functions from \texttt{l3backend} are needed too for handling links.}
+% \changes{v0.4.0}{2021/02/26}{Update to new \texttt{l3pdf} names and support more engines.}
 % The main functionality.
 %    \begin{macrocode}
+\str_new:N \l__intopdf_mime_str
+\str_new:N \l__intopdf_filename_str
+\str_new:N \l__intopdf_description_str
+
 \cs_new_protected:Nn\intopdf_attach_link:nnnnn{
-  \pdf_object_now:nx {fstream} { {
-    /Subtype /\__intopdf_escape_name:n { #3 }
+  \leavevmode
+  \str_set_convert:Nnnn \l__intopdf_mime_str { #3 } { default } { utf8/name }
+  \pdf_object_unnamed_write:nx {fstream} { {
+    /Subtype /\l__intopdf_mime_str
   } { #2 } }
-  \pdf_object_now:nx {dict} {
+  \str_set_convert:Nnnn \l__intopdf_filename_str { #1 } { default } { utf16/string }
+  \str_set_convert:Nnnn \l__intopdf_description_str { #4 } { default } { utf16/string }
+  \pdf_object_unnamed_write:nx {dict} {
     /Type /Filespec
-    /F \__intopdf_escape_string:n { #1 }
-    /EF << /F~\pdf_object_last: >>
-    /Desc \__intopdf_escape_string:n { #4 }
+    /F (\l__intopdf_filename_str)
+    /EF << /F~\pdf_object_ref_last: >>
+    /Desc (\l__intopdf_description_str)
   }
   \__pdf_backend_link_begin_user:nnw {
     \Hy@setpdfborder
@@ -149,10 +133,10 @@
   }
     \__pdf_backend_link_begin_user:nnw { } {
       /Subtype /FileAttachment
-      /FS~\pdf_object_last:
+      /FS~\pdf_object_ref_last:
       /F~416
       /CA~0
-      /Contents \__intopdf_escape_string:n{#4}
+      /Contents (\l__intopdf_description_str)
     }
       #5
     \__pdf_backend_link_end:
