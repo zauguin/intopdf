@@ -35,6 +35,7 @@
 \usepackage{intopdf,metalogo}
 \begin{document}
 \DocInput{intopdf.dtx}
+\clearpage
 \PrintIndex
 \PrintChanges
 \end{document}
@@ -46,7 +47,7 @@
 %
 % \GetFileInfo{intopdf.dtx}
 % \title{The \pkg{intopdf} package\thanks{This document
-%        corresponds to \pkg{intopdf}~0.4.0, dated~2021/02/26.}}
+%        corresponds to \pkg{intopdf}~0.4.1, dated~2022/07/21.}}
 % \author{Marcel Kr\"uger \\ \href{mailto:tex@2krueger.de}{tex@2krueger.de}}
 %
 % \maketitle
@@ -89,8 +90,8 @@
 \RequirePackage{expl3,xparse}
 \ProvidesExplPackage
   {intopdf}
-  {2021/02/26}
-  {0.4.0}
+  {2022/07/21}
+  {v0.4.1}
   {Embed non-PDF files into PDF with hyperlink}
 
 \RequirePackage{hyperref}
@@ -100,6 +101,7 @@
 % \changes{v0.2.0}{2019/05/21}{Added filespec support. (The first optional argument) Added \cs{intopdf_attach_link:nnnnn}.}
 % \changes{v0.3.0}{2020/03/13}{Switched to \texttt{l3pdf} instead of using primitives directly. Currently some internal functions from \texttt{l3backend} are needed too for handling links.}
 % \changes{v0.4.0}{2021/02/26}{Update to new \texttt{l3pdf} names and support more engines.}
+% \changes{v0.4.1}{2022/07/21}{Properly separate legacy and Unicode filenames}
 % The main functionality.
 %    \begin{macrocode}
 \str_new:N \l__intopdf_mime_str
@@ -112,11 +114,13 @@
   \pdf_object_unnamed_write:nx {fstream} { {
     /Subtype /\l__intopdf_mime_str
   } { #2 } }
-  \str_set_convert:Nnnn \l__intopdf_filename_str { #1 } { default } { utf16/string }
+  \str_set_convert:Nnnn \l__intopdf_filename_str { #1 } { default } { utf8/string }
+  \str_set_convert:Nnnn \l__intopdf_filename_unicode_str { #1 } { default } { utf16/string }
   \str_set_convert:Nnnn \l__intopdf_description_str { #4 } { default } { utf16/string }
   \pdf_object_unnamed_write:nx {dict} {
     /Type /Filespec
     /F (\l__intopdf_filename_str)
+    /UF (\l__intopdf_filename_unicode_str)
     /EF << /F~\pdf_object_ref_last: >>
     /Desc (\l__intopdf_description_str)
   }
