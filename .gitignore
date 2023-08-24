@@ -1,0 +1,10 @@
+*.aux
+*.dvi
+*.glo
+*.hd
+*.idx
+*.log
+*.out
+*.sty
+
+example.pdf
