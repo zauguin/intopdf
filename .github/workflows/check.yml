@@ -1,0 +1,25 @@
+name: Check
+on: [push, pull_request]
+jobs:
+  texlive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install TeX Live
+        uses: zauguin/install-texlive@v3
+        with:
+          packages: >
+            tex latex-bin tools alphalph metalogo hyperref infwarerr
+            booktabs amsmath amsfonts colortbl hologo pdftexcmds iftex
+            kvoptions enumitem psnfss csquotes fancyvrb underscore metafont
+            ec hypdoc epstopdf-pkg
+      - run: tex intopdf.dtx
+      - run: pdflatex intopdf.dtx
+      - run: pdflatex intopdf.dtx
+      - run: pdflatex example.tex
+      - name: Upload PDFs
+        uses: actions/upload-artifact@v3
+        with:
+          name: PDFs
+          path: "*.pdf"
